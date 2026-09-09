@@ -205,23 +205,25 @@ Answer the following in your own words (write 2–3 sentences per point):
 > [!NOTE]
 > ***Your Answer***
 >
-> Data inconsistency: With 10 people editing, the same item can end up with different names, prices, or stock counts across copies. There's no enforced single source of truth.
-Concurrency problems: Spreadsheets don't handle simultaneous edits well. If two staff update the same item's stock at once, one person's change can silently overwrite the other's with no warning.
-Poor scalability: At 5,000+ rows, spreadsheets get slow to search and filter. Complex queries like "items under $20 with stock below 5" become manual, error-prone, and slow.
+> -Data inconsistency: With 10 people editing, the same item can end up with different names, prices, or stock counts across copies. There's no enforced single source of truth.
+  -Concurrency problems: Spreadsheets don't handle simultaneous edits well. If two staff update the same item's stock at once, one person's change can silently overwrite the other's with no warning.
+  -Poor scalability: At 5,000+ rows, spreadsheets get slow to search and filter. Complex queries like "items under $20 with stock below 5" become manual, error-prone, and slow.
 
 2. List **3 benefits** of switching to a database system, explaining how each one solves a problem from your list above.
 
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> Centralized data with constraints fixes inconsistency. each item is stored once, and constraints prevent duplicate or malformed entries. Everyone works from the same authoritative record.
+Transactions and concurrency control fix the overwrite problem. the DBMS ensures simultaneous updates are handled safely instead of one silently erasing the other. This keeps stock counts and prices accurate even with many editors.
+Indexing and SQL queries fix scalability. indexes let queries return instantly even with tens of thousands of rows. Staff can filter precisely instead of manually scrolling a huge spreadsheet.
 
 3. Explain the three-schema architecture in your own words. Why is the separation into three levels useful?
 
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> The three-schema architecture splits a database into three levels: the internal schema (how data is physically stored on disk), the conceptual schema (the logical structure — tables, columns, relationships), and the external schema (the tailored view each user or app sees). we can change physical storage or add a new column at the logical level without breaking applications or user views built on top. It keeps changes at one level from rippling through and breaking the others.
 
 ---
 
@@ -237,15 +239,17 @@ _(See Section 1 of this week's Theory material.)_
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> Data is raw, context-free facts, like "189.50" and "42" alone. Information is data with context that makes it meaningful. "Alpine Pro Hiking Boots costs €189.50, 42 in stock." TrailShop has lots of data but struggles to turn it into usable information.
 
 **Q2.** List and explain three disadvantages of file-based data management systems. For each, describe how it would affect TrailShop specifically.
 _(See Section 2 of this week's Theory material.)_
 
 > [!NOTE]
-> ***Your Answer***
 >
-> _(Write your answer here.)_
+>
+> Inconsistency: the same product has different prices across files, so customers get charged wrong.
+> Isolation: customer, order, and category data live in separate formats, making simple questions take hours to answer.
+> Concurrency issues: two staff editing the same spreadsheet at once causes one person's changes to overwrite the other's.
 
 **Q3.** What is a DBMS? List four of its core functions.
 _(See Sections 3 and 4 of this week's Theory material.)_
@@ -253,7 +257,7 @@ _(See Sections 3 and 4 of this week's Theory material.)_
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> A DBMS is software that creates, maintains, and controls access to a database, sitting between applications and stored data. Core functions include data definition (DDL), data manipulation (DML), concurrency control, and security/authorization.
 
 **Q4.** Explain program-data independence with a concrete example. Why is it important?
 _(See Section 5.2 of this week's Theory material.)_
@@ -261,7 +265,7 @@ _(See Section 5.2 of this week's Theory material.)_
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+>Program-data independence means applications aren't tied to the data's structure, so schema changes don't break them. E.g., adding a weight_kg column to products doesn't break a query that only selects name, price. This keeps maintenance cheap and low-risk.
 
 **Q5.** What is metadata? Give two examples of metadata for a `products` table.
 _(See Section 8 of this week's Theory material.)_
@@ -269,7 +273,7 @@ _(See Section 8 of this week's Theory material.)_
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> Metadata is "data about data" — it describes structure, not content. Examples: price has type NUMERIC(10,2); the constraint price > 0.
 
 **Q6.** What is the three-schema architecture? Name and briefly describe each level.
 _(See Section 3.3 of this week's Theory material.)_
@@ -277,7 +281,7 @@ _(See Section 3.3 of this week's Theory material.)_
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> It splits a database into three levels: external (what each user/app sees, e.g. marketing vs. warehouse views), conceptual (the full logical structure tables, columns, relationships), and internal (how data is physically stored on disk).
 
 **Q7.** Explain the difference between logical data independence and physical data independence.
 _(See Section 3.4 of this week's Theory material.)_
@@ -285,7 +289,7 @@ _(See Section 3.4 of this week's Theory material.)_
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+>Logical independence lets you change the conceptual schema (e.g., add a column) without affecting apps that don't use it. Physical independence lets you change physical storage (e.g., add an index) without touching the logical structure or apps.
 
 **Q8.** What is a transaction? Why is atomicity important? Give a TrailShop example.
 _(See Section 5.5 of this week's Theory material.)_
@@ -293,7 +297,7 @@ _(See Section 5.5 of this week's Theory material.)_
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+>A transaction is a unit of work that must fully complete or not happen at all (atomicity). This prevents half-finished, inconsistent states. Example: if a TrailShop order's payment fails, the whole transaction rolls back so stock isn't decremented for an order that never completed.
 
 ### True/False
 
@@ -308,7 +312,11 @@ For each statement, write **True** or **False** and correct any false statements
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write True/False and corrections for all five statements above.)_
+> False. A DBMS is self-describing — it stores both the data and metadata (the data dictionary/system catalog) describing its own structure.
+> True.
+> True.
+> False. PostgreSQL is free and open-source, not commercial or closed-source.
+> False. That describes the internal level. The conceptual level describes the full logical structure of the database — tables, columns, relationships, and constraints — independent of physical storage.
 
 ### Matching Exercise
 
@@ -345,16 +353,16 @@ Match each term (1–10) with its definition (A–J).
 >
 > | #   | Your Match |
 > | --- | ---------- |
-> | 1   |            |
-> | 2   |            |
-> | 3   |            |
-> | 4   |            |
-> | 5   |            |
-> | 6   |            |
-> | 7   |            |
-> | 8   |            |
-> | 9   |            |
-> | 10  |            |
+> | 1   |F           |
+> | 2   |H           |
+> | 3   |B           |
+> | 4   |A           |
+> | 5   |C           |
+> | 6   |G           |
+> | 7   |D           |
+> | 8   |E           |
+> | 9   |I           |
+> | 10  |J           |
 
 ---
 
