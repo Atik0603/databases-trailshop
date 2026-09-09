@@ -205,7 +205,9 @@ Answer the following in your own words (write 2–3 sentences per point):
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> Data inconsistency: With 10 people editing, the same item can end up with different names, prices, or stock counts across copies. There's no enforced single source of truth.
+Concurrency problems: Spreadsheets don't handle simultaneous edits well. If two staff update the same item's stock at once, one person's change can silently overwrite the other's with no warning.
+Poor scalability: At 5,000+ rows, spreadsheets get slow to search and filter. Complex queries like "items under $20 with stock below 5" become manual, error-prone, and slow.
 
 2. List **3 benefits** of switching to a database system, explaining how each one solves a problem from your list above.
 
