@@ -312,11 +312,11 @@ For each statement, write **True** or **False** and correct any false statements
 > [!NOTE]
 > ***Your Answer***
 >
-> False. A DBMS is self-describing — it stores both the data and metadata (the data dictionary/system catalog) describing its own structure.
-> True.
-> True.
-> False. PostgreSQL is free and open-source, not commercial or closed-source.
-> False. That describes the internal level. The conceptual level describes the full logical structure of the database — tables, columns, relationships, and constraints — independent of physical storage.
+>***False. A DBMS is self-describing — it stores both the data and metadata (the data dictionary/system catalog) describing its own structure.***
+>***True.***
+ ***True.***
+> ***False. PostgreSQL is free and open-source, not commercial or closed-source.***
+> ***False. That describes the internal level. The conceptual level describes the full logical structure of the database — tables, columns, relationships, and constraints — independent of physical storage.***
 
 ### Matching Exercise
 
