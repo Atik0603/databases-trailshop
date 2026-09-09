@@ -313,9 +313,17 @@ For each statement, write **True** or **False** and correct any false statements
 > ***Your Answer***
 >
 >***False. A DBMS is self-describing — it stores both the data and metadata (the data dictionary/system catalog) describing its own structure.***
+>
+> 
 >***True.***
+>
+> 
  ***True.***
+
+ 
 > ***False. PostgreSQL is free and open-source, not commercial or closed-source.***
+>
+> 
 > ***False. That describes the internal level. The conceptual level describes the full logical structure of the database — tables, columns, relationships, and constraints — independent of physical storage.***
 
 ### Matching Exercise
@@ -388,7 +396,18 @@ Connect to PostgreSQL using psql and complete the following. Write down the comm
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Document the commands you used and summarize the output for each step.)_
+> \l - lists datbase name <br>
+
+\c trailshop - connects to the trailshop database
+
+\dt - lists tables. currently shows no table.
+
+\d[S+]   NAME          describe table, view, sequence, or index
+
+\du[Sx+] [PATTERN]     list roles
+
+\? options             show help on psql command-line options
+
 
 ### Exercise 3.2: Explore the System Catalog
 
@@ -401,7 +420,7 @@ SELECT current_database();
 ```sql
 SELECT version();
 ```
-
+          
 ```sql
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public';
@@ -412,7 +431,7 @@ Why does the last query return no rows? What would you expect to see after creat
 > [!NOTE]
 > ***Your Answer***
 >
-> _(Write your answer here.)_
+> Becasue I have not created any tables yet. Once I create tables like products, categories, orders, etc. this same query will return one row per table
 
 ### Exercise 3.3: Create and Drop a Test Database
 
