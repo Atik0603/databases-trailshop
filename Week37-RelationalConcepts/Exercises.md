@@ -115,14 +115,21 @@ Think about rules for customers, orders, and categories — not just products.
 > ***Your Answer***
 >
 > *(List your 5 business rules with constraint types, table/column, and SQL syntax.)*
+>
+
 | Business Rule | Constraint Type | Table.Column | SQL |
+
 |---|---|---|---|
+
 | Every product must have a price greater than zero | CHECK | products.price | `CHECK (price > 0)` |
+
 | Customer emails must be unique | UNIQUE | customers.email | `email VARCHAR(255) UNIQUE` |
+
 | Stock quantity can't go negative | CHECK | products.stock_quantity | `CHECK (stock_quantity >= 0)` |
+
 | Order status must be one of a fixed set | CHECK | orders.status | `CHECK (status IN ('pending','shipped','delivered','cancelled'))` |
-| New products start with 0 stock by default |DEFAULT | products.stock_quantity | `stock_quantity INTEGER DEFAULT 0` |
-| ... | ... | ... | ... |
+
+| New products start with 0 stock by default | DEFAULT | products.stock_quantity | `stock_quantity INTEGER DEFAULT 0` |
 >
 >
 >
@@ -583,12 +590,14 @@ PKs: genre_id (surrogate), isbn (natural — real-world identifier, already uniq
 Foreign keys: books.genre_id → genres.genre_id; copies.isbn → books.isbn; borrowings.member_id → members.member_id; borrowings.barcode → copies.barcode.
 >
 
-|Rule |	Constraint type| Enforceable |
-|Member borrows at most 5 copies at once |	— |	No — needs a trigger or application check (count of open borrowings per member) |
-|Due date = borrow_date + 14 days	| DEFAULT / generated column	Partially| — could use due_date DATE GENERATED ALWAYS AS (borrow_date + 14) STORED, or app logic|
-|A copy can't be borrowed if not yet returned |	—	|No — needs a trigger or app-level check (query for open borrowings on that barcode before insert)|
-|Every book belongs to exactly one genre |	NOT NULL + FK |	Yes |
-|Every copy belongs to a valid book|	NOT NULL + FK	| Yes |
+| Rule | Constraint Type | Enforceable |
+|---|---|---|
+| Member borrows at most 5 copies at once | — | No — needs a trigger or application check (count of open borrowings per member) |
+| Due date = borrow_date + 14 days | DEFAULT / generated column | Partially — could use `due_date DATE GENERATED ALWAYS AS (borrow_date + 14) STORED`, or app logic |
+| A copy can't be borrowed if not yet returned | — | No — needs a trigger or app-level check (query for open borrowings on that barcode before insert) |
+| Every book belongs to exactly one genre | NOT NULL + FK | Yes |
+| Every copy belongs to a valid book | NOT NULL + FK | Yes |
+
 6. **Write the CREATE TABLE statements** for at least the `books`, `copies`, and `borrowings` tables with full constraints.
 
 ```sql
