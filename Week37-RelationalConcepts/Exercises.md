@@ -19,7 +19,7 @@ Using the `products`, `categories`, and `customers` tables shown in Section 2 of
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+product_id. It's a good choice because it's a surrogate key — stable (never changes), simple (single integer column), has no business meaning that could change, and is guaranteed unique and non-null.
 >
 >
 >
@@ -31,7 +31,7 @@ Using the `products`, `categories`, and `customers` tables shown in Section 2 of
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> category_id
 >
 >
 >
@@ -43,7 +43,7 @@ Using the `products`, `categories`, and `customers` tables shown in Section 2 of
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> category_id, referencing categories.category_id. It links each product to exactly one category (1:N relationship).
 >
 >
 >
@@ -56,7 +56,7 @@ Using the `products`, `categories`, and `customers` tables shown in Section 2 of
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> Only if we assume all product names are guaranteed unique (no two products ever share a name). It would be unsuitable as a PK because names can change (rebranding, typos fixed) and long text values make worse join/index keys than a small integer.
 >
 >
 >
@@ -66,7 +66,7 @@ Using the `products`, `categories`, and `customers` tables shown in Section 2 of
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> {product_id, price}. It's a superkey because product_id alone already guarantees uniqueness, but adding price is redundant — removing it doesn't break uniqueness, so the set isn't minimal.
 >
 >
 >
@@ -77,7 +77,7 @@ Using the `products`, `categories`, and `customers` tables shown in Section 2 of
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> (order_id, product_id). Neither column alone is sufficient. order_id repeats once per line item in the same order, and product_id repeats across different orders. Only the combination uniquely identifies "this product on this order."
 >
 >
 >
@@ -88,7 +88,7 @@ Using the `products`, `categories`, and `customers` tables shown in Section 2 of
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> Yes, assuming emails are enforced unique. Compared to customer_id: email is a natural key (real-world meaning, can change if a customer updates their address) vs customer_id which is a surrogate key (no meaning, never changes). Natural keys are riskier as PKs because updates cascade through every FK referencing them.
 >
 >
 >
@@ -115,7 +115,14 @@ Think about rules for customers, orders, and categories — not just products.
 > ***Your Answer***
 >
 > *(List your 5 business rules with constraint types, table/column, and SQL syntax.)*
->
+>| Business Rule | Constraint Type | Table.Column | SQL |
+|---|---|---|---|
+| Every product must have a price greater than zero | CHECK | products.price | `CHECK (price > 0)` |
+| Customer emails must be unique | UNIQUE | customers.email | `email VARCHAR(255) UNIQUE` |
+| Stock quantity can't go negative | CHECK | products.stock_quantity | `CHECK (stock_quantity >= 0)` |
+| Order status must be one of a fixed set | CHECK | orders.status | `CHECK (status IN ('pending','shipped','delivered','cancelled'))` |
+| New products start with 0 stock by default |DEFAULT | products.stock_quantity | `stock_quantity INTEGER DEFAULT 0` |
+| ... | ... | ... | ... |
 >
 >
 >
@@ -162,7 +169,21 @@ VALUES (1001, 101, 0, 189.50);
 > ***Your Answer***
 >
 > *(For each statement A–H, write SUCCESS or FAIL and explain any violation.)*
->
+>A — FAIL. category_id is the PK, and PKs can never be NULL (entity integrity).
+> 
+> B — SUCCESS. product_id 109 is new, category_id 2 exists.
+> 
+C — FAIL. CHECK (price > 0) rejects -5.00 (domain/behavioral constraint).
+
+D — FAIL. product_id 103 already exists — violates the PK's uniqueness constraint.
+
+E — FAIL. category_id 10 doesn't exist in categories — violates referential integrity (foreign key constraint).
+
+F — FAIL. name is NOT NULL, so inserting NULL violates that constraint.
+
+G — FAIL. CHECK (stock_quantity >= 0) rejects -3.
+
+H — FAIL. CHECK (quantity > 0) on order_items rejects 0.
 >
 >
 >
@@ -172,17 +193,18 @@ VALUES (1001, 101, 0, 189.50);
 Consider the following scenario using the schema from Theory Section 9.8:
 
 1. You want to delete category 2 ("Camping") from the `categories` table. Products 102 and 106 reference this category. What happens with:
-   - `ON DELETE RESTRICT`?
-   - `ON DELETE CASCADE`?
-   - `ON DELETE SET NULL`? (Assume `category_id` in `products` allows NULL for this question)
+   - `ON DELETE RESTRICT`? The DELETE fails outright — PostgreSQL won't let me delete category 2 while products 102/106 still reference it.
+
+   - `ON DELETE CASCADE`?Category 2 is deleted, and products 102 and 106 are automatically deleted too.
+
+   - `ON DELETE SET NULL`? (Assume `category_id` in `products` allows NULL for this question)Category 2 is deleted; products 102 and 106 survive but their category_id becomes NULL (uncategorized).
 
 2. Which foreign key action would you recommend for the TrailShop `products.category_id` → `categories.category_id` relationship? Justify your choice in 2–3 sentences.
 
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+ON DELETE RESTRICT (or leave it as default NO ACTION). Deleting a category shouldn't silently destroy or orphan real product data — an admin should be forced to explicitly reassign or remove those products first. SET NULL is a reasonable second choice if "uncategorized" is a valid business state, but CASCADE here is dangerous, deleting a category could wipe out inventory data by accident.
 >
 >
 >
@@ -203,7 +225,13 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+Relation = a table (a set of rows sharing the same columns), e.g. products. 
+
+Tuple = one row, e.g. (101, 'Alpine Pro Hiking Boots', 189.50, 42, 1). 
+
+Attribute = one column, e.g. price. 
+
+Domain = the pool of legal values for an attribute, e.g. price's domain is positive decimal numbers.
 >
 >
 >
@@ -217,7 +245,9 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+A candidate key is any minimal unique identifier; the primary key is the one candidate key we formally choose as the table's official identifier. 
+
+Yes — a table can have multiple candidate keys (e.g. product_id and, if unique, name), but only one becomes the PK; the rest become alternate keys.
 >
 >
 >
@@ -231,7 +261,7 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+Entity integrity means every row must be uniquely and reliably identifiable via its primary key. If a PK were to be NULL, we couldn't distinguish that row from any other NULL-keyed row, and no other table could reliably reference it via a foreign key, the whole referencing system breaks down.
 >
 >
 >
@@ -244,9 +274,13 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> Referential integrity is violated when a foreign key value doesn't match any existing primary key value in the referenced table (and isn't NULL). Example:
+> 
+INSERT INTO products (product_id, name, price, stock_quantity, category_id)
+
+VALUES (111, 'CloudWalker Sandals', 65.00, 40, 10);´
 >
->
+Expected error: ERROR: insert or update on table "products" violates foreign key constraint ... DETAIL: Key (category_id)=(10) is not present in table "categories".
 >
 >
 
@@ -257,7 +291,11 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> A surrogate key is artificial and meaningless (e.g. an auto-incrementing book_id)
+>
+>  a natural key is drawn from real business data (e.g. isbn). For a library books table: surrogate = book_id SERIAL PRIMARY KEY
+>
+>  natural = isbn VARCHAR(13) UNIQUE.
 >
 >
 >
@@ -271,7 +309,7 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> NULL represents an unknown or inapplicable value. WHERE price = NULL is wrong because any comparison to NULL evaluates to UNKNOWN, not TRUE — so it never matches rows, even ones with NULL prices. we should write WHERE price IS NULL.
 >
 >
 >
@@ -284,7 +322,7 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> A junction table implements a many-to-many relationship by holding pairs of foreign keys, one to each side of the relationship, usually as a composite primary key. It's needed whenever "many rows in A relate to many rows in B" — we can't model that with a single FK column. Example: product_tags(product_id, tag_id) linking products and tags.
 >
 >
 >
@@ -297,7 +335,11 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> 1:1 — one row in A relates to exactly one row in B (e.g. products ↔ product_details).
+> 
+>1:N — one row in A relates to many rows in B (e.g. one categories row has many products). 
+>
+>M:N — many rows in A relate to many rows in B, via a junction table (e.g. products ↔ tags through product_tags).
 >
 >
 >
@@ -311,7 +353,7 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> ON DELETE CASCADE automatically deletes dependent rows when the referenced row is deleted; ON DELETE RESTRICT blocks the deletion entirely if dependents exist. Use CASCADE when child rows have no meaning without the parent (e.g. deleting an order should delete its order_items). Use RESTRICT when deletion should be a deliberate, explicit decision (e.g. don't let deleting a category silently wipe out products).
 >
 >
 >
@@ -324,7 +366,7 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> Atomic entries means each cell holds a single indivisible value, not a list or nested structure. Violation example: a categories column containing "Footwear, Hiking" in one cell for a single product — that's two values crammed into one, making it impossible to query "all footwear products" without string parsing.
 >
 >
 >
@@ -336,12 +378,12 @@ Answer each question in 2–4 sentences unless otherwise specified. Reference th
 
 For each statement, write **True** or **False** and correct any false statements.
 
-1. A superkey is always a candidate key.
-2. A primary key can consist of more than one column.
-3. NULL = NULL evaluates to TRUE in SQL.
-4. A foreign key must always be NOT NULL.
-5. Referential integrity ensures that every FK value matches an existing PK value (or is NULL).
-6. The degree of a relation is the number of rows.
+1. A superkey is always a candidate key. false
+2. A primary key can consist of more than one column. true
+3. NULL = NULL evaluates to TRUE in SQL. False
+4. A foreign key must always be NOT NULL. False
+5. Referential integrity ensures that every FK value matches an existing PK value (or is NULL). True
+6. The degree of a relation is the number of rows. False
 
 ### Matching Exercise
 
@@ -383,18 +425,18 @@ Match each term (1–12) with its definition (A–L).
 >
 > | # | Your Match |
 > |---|---|
-> | 1 | |
-> | 2 | |
-> | 3 | |
-> | 4 | |
-> | 5 | |
-> | 6 | |
-> | 7 | |
-> | 8 | |
-> | 9 | |
-> | 10 | |
-> | 11 | |
-> | 12 | |
+> | 1 |f |
+> | 2 |g |
+> | 3 |b |
+> | 4 |h |
+> | 5 |e |
+> | 6 |d |
+> | 7 |j |
+> | 8 |c |
+> | 9 |a |
+> | 10 |k |
+> | 11 |i |
+> | 12 |l |
 >
 
 ---
@@ -434,28 +476,28 @@ For each statement below, predict: **SUCCESS** or **FAIL**? If fail, name the vi
 
 ```sql
 -- 1
-INSERT INTO employees VALUES (102, 'Carol', 70000, 1);
+INSERT INTO employees VALUES (102, 'Carol', 70000, 1); SUCCESS
 
 -- 2
-INSERT INTO employees VALUES (103, 'Dan', -5000, 1);
+INSERT INTO employees VALUES (103, 'Dan', -5000, 1); FAIL — CHECK (salary >= 0) violated
 
 -- 3
-INSERT INTO employees VALUES (100, 'Eve', 80000, 2);
+INSERT INTO employees VALUES (100, 'Eve', 80000, 2); FAIL — FK violation, dept_id 5 doesn't exist FAIL — duplicate PK emp_id 100
 
 -- 4
-INSERT INTO employees VALUES (104, 'Frank', 60000, 5);
+INSERT INTO employees VALUES (104, 'Frank', 60000, 5); FAIL — FK violation, dept_id 5 doesn't exist
 
 -- 5
-INSERT INTO departments VALUES (3, 'Engineering');
+INSERT INTO departments VALUES (3, 'Engineering'); FAILS - dept_name has a UNIQUE constraint
 
 -- 6
-INSERT INTO employees VALUES (105, NULL, 55000, 2);
+INSERT INTO employees VALUES (105, NULL, 55000, 2); FAIL — name is NOT NULL
 
 -- 7
-DELETE FROM departments WHERE dept_id = 1;
+DELETE FROM departments WHERE dept_id = 1; FAIL — department 1 is referenced by employee 100 (Alice); default FK behavior is RESTRICT/NO ACTION
 
 -- 8
-INSERT INTO employees VALUES (106, 'Grace', 0, 2);
+INSERT INTO employees VALUES (106, 'Grace', 0, 2); SUCCESS
 ```
 
 ### Exercise 3.2: Write the Constraints
@@ -471,6 +513,35 @@ Given these business rules for a **bookstore database**, write the `CREATE TABLE
 *(Hint: you'll need at least 4 tables, including a junction table for the M:N relationship.)*
 
 ---
+```sql
+-- 1
+CREATE TABLE genres (
+    genre_id   INTEGER      PRIMARY KEY,
+    genre_name VARCHAR(50)  NOT NULL UNIQUE
+);
+-- 2
+CREATE TABLE books (
+    isbn      CHAR(13)      PRIMARY KEY,
+    title     VARCHAR(200)  NOT NULL,
+    price     NUMERIC(10,2) NOT NULL CHECK (price > 0),
+    pub_year  INTEGER       NOT NULL
+              CHECK (pub_year BETWEEN 1450 AND EXTRACT(YEAR FROM CURRENT_DATE)),
+    genre_id  INTEGER       NOT NULL REFERENCES genres(genre_id)
+);
+-- 3
+CREATE TABLE authors (
+    author_id  INTEGER      PRIMARY KEY,
+    first_name VARCHAR(50)  NOT NULL,
+    last_name  VARCHAR(50)  NOT NULL
+);
+-- 4
+CREATE TABLE book_authors (
+    isbn      CHAR(13) REFERENCES books(isbn),
+    author_id INTEGER  REFERENCES authors(author_id),
+    PRIMARY KEY (isbn, author_id)
+);
+
+```
 
 ## Part 4: Design Exercise — Library System
 
@@ -497,14 +568,53 @@ A small public library needs a database. Here is a description of their requirem
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+1. Tables & columns
+
+genres(genre_id, genre_name)
+books(isbn, title, pub_year, genre_id)
+copies(barcode, isbn)
+members(member_id, name, email, phone)
+borrowings(borrowing_id, member_id, barcode, borrow_date, due_date, return_date)
 >
 >
+PKs: genre_id (surrogate), isbn (natural — real-world identifier, already unique), barcode (natural — physical sticker ID, already unique per copy), member_id (surrogate), borrowing_id (surrogate — a borrowing event has no natural identifier).
 >
 >
+Foreign keys: books.genre_id → genres.genre_id; copies.isbn → books.isbn; borrowings.member_id → members.member_id; borrowings.barcode → copies.barcode.
+>
+
+|Rule |	Constraint type| Enforceable |
+|Member borrows at most 5 copies at once |	— |	No — needs a trigger or application check (count of open borrowings per member) |
+|Due date = borrow_date + 14 days	| DEFAULT / generated column	Partially| — could use due_date DATE GENERATED ALWAYS AS (borrow_date + 14) STORED, or app logic|
+|A copy can't be borrowed if not yet returned |	—	|No — needs a trigger or app-level check (query for open borrowings on that barcode before insert)|
+|Every book belongs to exactly one genre |	NOT NULL + FK |	Yes |
+|Every copy belongs to a valid book|	NOT NULL + FK	| Yes |
 6. **Write the CREATE TABLE statements** for at least the `books`, `copies`, and `borrowings` tables with full constraints.
 
----
+```sql
+CREATE TABLE books (
+    isbn     CHAR(13)     PRIMARY KEY,
+    title    VARCHAR(200) NOT NULL,
+    pub_year INTEGER      NOT NULL CHECK (pub_year BETWEEN 1450 AND 2100),
+    genre_id INTEGER      NOT NULL REFERENCES genres(genre_id)
+);
+
+CREATE TABLE copies (
+    barcode  VARCHAR(20)  PRIMARY KEY,
+    isbn     CHAR(13)     NOT NULL REFERENCES books(isbn)
+);
+
+CREATE TABLE borrowings (
+    borrowing_id SERIAL   PRIMARY KEY,
+    member_id    INTEGER  NOT NULL REFERENCES members(member_id),
+    barcode      VARCHAR(20) NOT NULL REFERENCES copies(barcode),
+    borrow_date  DATE     NOT NULL DEFAULT CURRENT_DATE,
+    due_date     DATE     NOT NULL,
+    return_date  DATE,
+    CHECK (return_date IS NULL OR return_date >= borrow_date)
+);
+```
+
 
 ## Submission Checklist
 
