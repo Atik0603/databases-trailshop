@@ -59,6 +59,8 @@ Verify that your constraints work by attempting at least 2 invalid inserts and s
 > -- Paste key CREATE TABLE statements or link to your .sql file contents here
 >
 >
+https://github.com/Atik0603/databases-trailshop/blob/main/Week39-LogicalDatabaseDesign/trailshop_schema.sql
+>
 > ```
 
 > [!NOTE]
