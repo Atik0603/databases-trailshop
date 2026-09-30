@@ -20,3 +20,7 @@
 
 
 >order_items.product_id → products: ON DELETE RESTRICT — a product that has been ordered before must not be deletable, or historical order records would reference a nonexistent product.
+
+
+***Design decision:*** 
+>I made the orders shipping address columns (shipping_street, etc.) nullable and separate from the customer's own address, rather than always reusing customers.street/city/.... This allows a customer to ship to a different address than their registered one (e.g. gift orders), while still defaulting to their own address at the application level when left blank.
