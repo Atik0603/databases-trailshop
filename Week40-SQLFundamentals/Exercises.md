@@ -34,11 +34,49 @@ Write and execute the CREATE TABLE statements for all five TrailShop tables in t
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
+```sql
+CREATE TABLE categories (
+    category_id  SERIAL PRIMARY KEY,
+    name         VARCHAR(100) NOT NULL UNIQUE,
+    description  TEXT
+);
+
+CREATE TABLE customers (
+    customer_id  SERIAL PRIMARY KEY,
+    first_name   VARCHAR(100) NOT NULL,
+    last_name    VARCHAR(100) NOT NULL,
+    email        VARCHAR(255) NOT NULL UNIQUE,
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE products (
+    product_id   SERIAL PRIMARY KEY,
+    name         VARCHAR(200) NOT NULL,
+    description  TEXT,
+    price        NUMERIC(10,2) NOT NULL CHECK (price > 0),
+    stock        INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    category_id  INTEGER NOT NULL REFERENCES categories(category_id),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE orders (
+    order_id     SERIAL PRIMARY KEY,
+    customer_id  INTEGER NOT NULL REFERENCES customers(customer_id),
+    order_date   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status       VARCHAR(20) NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending', 'shipped', 'delivered', 'cancelled'))
+);
+
+CREATE TABLE order_items (
+    order_item_id  SERIAL PRIMARY KEY,
+    order_id       INTEGER NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    product_id     INTEGER NOT NULL REFERENCES products(product_id),
+    quantity       INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price     NUMERIC(10,2) NOT NULL CHECK (unit_price > 0)
+);
 >
 >
-> ```
+```
 
 
 ### Task 1.3: Insert Sample Data
@@ -51,11 +89,14 @@ Insert the following data:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+ ```sql
+INSERT INTO categories (name, description) VALUES
+    ('Footwear', 'Hiking boots, trail runners, and sandals'),
+    ('Backpacks', 'Day packs, overnight packs, and expedition packs'),
+    ('Tents', 'One-person to family-size tents'),
+    ('Clothing', 'Outdoor clothing for all seasons'),
+    ('Accessories', 'Water bottles, headlamps, trekking poles');
+ ```
 
 **Customers** (at least 5):
 - Use easy to write names with realistic email addresses
@@ -63,11 +104,14 @@ Insert the following data:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+ ```sql
+INSERT INTO customers (first_name, last_name, email) VALUES
+    ('Anna', 'Virtanen', 'anna.v@email.com'),
+    ('Mikko', 'Korhonen', 'mikko.k@email.com'),
+    ('Sara', 'Makinen', 'sara.m@email.com'),
+    ('Juha', 'Nieminen', 'juha.n@email.com'),
+    ('Laura', 'Hamalainen', 'laura.h@email.com');
+```
 
 **Products** (at least 10):
 - At least 2 products per category
@@ -77,11 +121,20 @@ Insert the following data:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+```sql
+INSERT INTO products (name, description, price, stock, category_id) VALUES
+    ('TrailMaster X4', 'Hiking boot with Gore-Tex lining', 149.99, 25, 1),
+    ('LiteStep Pro', 'Lightweight trail runner', 89.99, 40, 1),
+    ('Summit 45L', 'Multi-day hiking backpack', 199.99, 15, 2),
+    ('DayTripper 20L', 'Compact day pack', 59.99, 50, 2),
+    ('CloudNest 2P', 'Two-person ultralight tent', 349.99, 10, 3),
+    ('StormShield 4P', 'Four-season family tent', 499.99, 5, 3),
+    ('ThermoLayer Jacket', 'Insulated mid-layer', 129.99, 30, 4),
+    ('RainGuard Pro', 'Waterproof rain jacket', 179.99, 20, 4),
+    ('HydroFlask 1L', 'Insulated water bottle', 34.99, 100, 5),
+    ('LumaBeam 800', 'Rechargeable headlamp', 44.99, 60, 5);
+
+```
 
 **Orders** (at least 5):
 - Different customers, different statuses
@@ -89,11 +142,14 @@ Insert the following data:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+ ```sql
+NSERT INTO orders (customer_id, status) VALUES
+    (1, 'delivered'),
+    (2, 'shipped'),
+    (1, 'pending'),
+    (3, 'delivered'),
+    (4, 'pending');
+ ```
 
 **Order Items** (at least 10):
 - Multiple items in some orders, single items in others
@@ -101,11 +157,14 @@ Insert the following data:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+ ```sql
+INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
+    (1, 1, 1, 149.99), (1, 9, 2, 34.99),
+    (2, 3, 1, 199.99), (2, 7, 1, 129.99),
+    (3, 5, 1, 349.99),
+    (4, 2, 1, 89.99), (4, 4, 1, 59.99), (4, 10, 1, 44.99),
+    (5, 6, 1, 499.99), (5, 8, 1, 179.99);
+```
 
 **Verify** each insert with `SELECT * FROM table_name;`
 
@@ -122,11 +181,13 @@ Perform the following updates and verify each one:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your queries here
->
->
-> ```
+```sql
+UPDATE products SET price = price * 1.10 WHERE category_id = 1;
+UPDATE customers SET email = 'sara.new@email.com' WHERE customer_id = 3;
+UPDATE orders SET status = 'delivered' WHERE order_id = 2;
+UPDATE products SET stock = 85 WHERE name = 'HydroFlask 1L';
+UPDATE products SET description = 'No description available yet.' WHERE description IS NULL;
+```
 
 
 ### Task 1.5: Practice DELETE
@@ -137,10 +198,9 @@ Perform the following updates and verify each one:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+>Its order_items rows are deleted automatically, because order_items.order_id has ON DELETE CASCADE.
 >
->
->
+>ERROR: update or delete on table "categories" violates foreign key constraint "products_category_id_fkey" on table "products", with the detail Key (category_id)=(1) is still referenced from table "products". It fails because the FK has no ON DELETE action, so the default is NO ACTION (blocked).
 >
 
 3. Delete a customer who has no orders
@@ -155,11 +215,12 @@ Perform the following updates and verify each one:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your queries here
->
->
-> ```
+ ```sql
+ALTER TABLE customers ADD COLUMN phone VARCHAR(20);
+ALTER TABLE products ADD COLUMN weight_grams INTEGER;
+ALTER TABLE products ADD CONSTRAINT chk_products_weight CHECK (weight_grams > 0);
+ALTER TABLE products RENAME COLUMN stock TO quantity_in_stock;
+```
 
 
 ---
@@ -173,8 +234,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>SQL stands for Structured Query Language (originally SEQUEL, Structured English Query Language). It was made to read like English so non-programmers could query databases.>
 >
 >
 >
@@ -184,8 +244,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>DDL defines structure (CREATE TABLE, ALTER TABLE). DML works with the data inside tables (INSERT, UPDATE).
 >
 >
 >
@@ -195,8 +254,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>DCL manages permissions (GRANT, REVOKE), used when setting up who can access what. TCL manages transactions (BEGIN, COMMIT, ROLLBACK), used when several >statements must succeed or fail together, like a money transfer.
 >
 >
 >
@@ -206,7 +264,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
+> A foreign key needs the referenced table to already exist. The FK dependencies decide the order, so categories comes before products and orders before >order_items.
 >
 >
 >
@@ -217,8 +275,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>A column-level constraint sits right after one column and applies only to it. A table-level constraint is declared after all columns and can span several. We >must use table-level for composite primary keys, composite foreign keys, and CHECKs across multiple columns.>
 >
 >
 >
@@ -228,8 +285,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>DELETE FROM products; removes rows one by one, can take a WHERE, fires triggers, and can be rolled back. TRUNCATE empties the whole table quickly, takes no >WHERE, and skips row triggers (RESTART IDENTITY resets the serial). Use DELETE for specific rows or when triggers matter, and TRUNCATE to quickly reset test data.
 >
 >
 >
@@ -239,8 +295,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>ON DELETE CASCADE deletes child rows when the parent is deleted. It suits deleting an order, since its items mean nothing without it. It is dangerous on >products.category_id, where deleting a category would silently wipe all its products.
 >
 >
 >
@@ -250,8 +305,7 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>unit_price preserves the price actually paid. If we looked it up from products, every past order's total would change whenever a price changed.
 >
 >
 >
@@ -261,16 +315,14 @@ Answer the following questions in your own words using the answer fields below:
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>SERIAL is PostgreSQL-specific shorthand over a sequence, and manual inserts can override it. GENERATED ALWAYS AS IDENTITY is the SQL standard and blocks> >accidental overrides. For a new project using IDENTITY is safer and portable.
 
 10. Explain why `UPDATE products SET price = 9.99;` is dangerous. What steps should you take before running any UPDATE statement?
 
 > [!NOTE]
 > ***Your Answer***
 >
-> *(Write your answer here.)*
->
+>With no WHERE clause, UPDATE products SET price = 9.99; overwrites every product's price. Before any UPDATE, We should write the WHERE first, run a SELECT with the same condition, and wrap it in BEGIN so we can ROLLBACK.
 >
 >
 >
@@ -293,11 +345,16 @@ Write a CREATE TABLE statement for a `suppliers` table with the following column
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+>```sql
+>CREATE TABLE suppliers (
+>    supplier_id   SERIAL PRIMARY KEY,
+>    company_name  VARCHAR(200) NOT NULL UNIQUE,
+>   contact_name  VARCHAR(150),
+>    email         VARCHAR(255) NOT NULL UNIQUE,
+>    phone         VARCHAR(20),
+>    country       VARCHAR(100) NOT NULL DEFAULT 'Finland'
+>);
+>```
 
 ### 3.2 CREATE TABLE with Foreign Key
 
@@ -312,11 +369,16 @@ Write a CREATE TABLE statement for a `product_reviews` table:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+>```sql
+>CREATE TABLE product_reviews (
+>    review_id    SERIAL PRIMARY KEY,
+>    product_id   INTEGER NOT NULL REFERENCES products(product_id),
+>    customer_id  INTEGER NOT NULL REFERENCES customers(customer_id),
+>    rating       INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+>    review_text  TEXT,
+>    created_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+>);
+>```
 
 ### 3.3 INSERT — Single Row
 
@@ -325,11 +387,10 @@ Write an INSERT statement to add a new category called 'Electronics' with descri
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+>```sql
+>INSERT INTO categories (name, description)
+>VALUES ('Electronics', 'GPS devices, solar chargers, and tech gear');
+>```
 
 ### 3.4 INSERT — Multiple Rows
 
@@ -341,11 +402,12 @@ Write a single INSERT statement that adds three new customers:
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+>```sql
+>INSERT INTO customers (first_name, last_name, email) VALUES
+>    ('Eero', 'Lahtinen', 'eero.l@email.com'),
+>    ('Maria', 'Salminen', 'maria.s@email.com'),
+>    ('Petri', 'Kallio', 'petri.k@email.com');
+>```
 
 ### 3.5 INSERT with RETURNING
 
@@ -354,11 +416,11 @@ Write an INSERT statement that adds a new product called 'NorthStar GPS' priced 
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+>```sql
+>INSERT INTO products (name, price, stock, category_id)
+>VALUES ('NorthStar GPS', 229.99, 12, 6)
+>RETURNING product_id, created_at;
+>```
 
 ### 3.6 UPDATE — Simple
 
@@ -367,11 +429,9 @@ Write an UPDATE statement that changes the email of the customer with customer_i
 > [!NOTE]
 > ***Your SQL***
 >
-> ```sql
-> -- Write your query here
->
->
-> ```
+>```sql
+>UPDATE customers SET email = 'mikko.korhonen@newmail.com' WHERE customer_id = 2;
+>```
 
 ### 3.7 UPDATE — Expression
 
@@ -381,10 +441,8 @@ Write an UPDATE statement that reduces the stock of all products by 1 where the 
 > ***Your SQL***
 >
 > ```sql
-> -- Write your query here
->
->
-> ```
+>UPDATE products SET stock = stock - 1 WHERE stock > 0;
+>```
 
 ### 3.8 UPDATE — Multiple Columns
 
@@ -394,7 +452,7 @@ Write an UPDATE statement that changes order #3 to status 'cancelled' and sets a
 > ***Your SQL***
 >
 > ```sql
-> -- Write your query here
+>UPDATE orders SET status = 'cancelled', cancelled_at = CURRENT_TIMESTAMP WHERE order_id = 3;
 >
 >
 > ```
@@ -407,7 +465,7 @@ Write a DELETE statement that removes all orders with status 'cancelled'.
 > ***Your SQL***
 >
 > ```sql
-> -- Write your query here
+>DELETE FROM orders WHERE status = 'cancelled';
 >
 >
 > ```
@@ -424,7 +482,10 @@ c) Add a composite unique constraint on (customer_id, product_id) in the product
 >
 > ```sql
 > -- Write your query here
->
+>ALTER TABLE products ADD COLUMN discount_percent NUMERIC(5,2) DEFAULT 0
+>    CHECK (discount_percent >= 0 AND discount_percent <= 100);
+>ALTER TABLE categories DROP COLUMN description;
+>ALTER TABLE product_reviews ADD CONSTRAINT uq_review_customer_product UNIQUE (customer_id, product_id);
 >
 > ```
 
@@ -447,20 +508,16 @@ CREATE TABLE warehouses
 > [!NOTE]
 > ***Error(s) Identified***
 >
-> *(Describe what is wrong.)*
->
->
->
+>Missing opening ( after the table name, and VARCHAR(100 is missing its closing )
+
 
 
 > [!NOTE]
 > ***Corrected SQL***
 >
-> ```sql
-> -- Write the corrected statement here
+>```sq
+>CREATE TABLE warehouses (warehouse_id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, city VARCHAR(100));
 >
->
-> ```
 
 
 ### 4.2
@@ -473,8 +530,7 @@ VALUES ("Alpine Sleeping Bag", 89.99, 20, 2);
 > [!NOTE]
 > ***Error(s) Identified***
 >
-> *(Describe what is wrong.)*
->
+>Double quotes on a string value (they are for identifiers)
 >
 >
 
@@ -483,8 +539,8 @@ VALUES ("Alpine Sleeping Bag", 89.99, 20, 2);
 > ***Corrected SQL***
 >
 > ```sql
-> -- Write the corrected statement here
->
+> 
+>VALUES ('Alpine Sleeping Bag', 89.99, 20, 2);
 >
 > ```
 
@@ -503,7 +559,7 @@ CREATE TABLE shipments (
 > [!NOTE]
 > ***Error(s) Identified***
 >
-> *(Describe what is wrong.)*
+> Missing comma after order_id INTEGER REFERENCES orders(order_id)
 >
 >
 >
@@ -513,8 +569,12 @@ CREATE TABLE shipments (
 > ***Corrected SQL***
 >
 > ```sql
-> -- Write the corrected statement here
->
+>CREATE TABLE shipments (
+>    shipment_id SERIAL PRIMARY KEY,
+>    order_id INTEGER REFERENCES orders(order_id),
+>    shipped_date DATE NOT NULL,
+>    carrier VARCHAR(100)
+>);
 >
 > ```
 
@@ -531,8 +591,7 @@ WHERE category_id = 3;
 > [!NOTE]
 > ***Error(s) Identified***
 >
-> *(Describe what is wrong.)*
->
+>Two SET keywords, but UPDATE takes one SET with comma-separated assignments
 >
 >
 
@@ -541,8 +600,10 @@ WHERE category_id = 3;
 > ***Corrected SQL***
 >
 > ```sql
-> -- Write the corrected statement here
->
+>UPDATE products
+>SET price = price * 0.9,
+>stock = stock + 10
+>WHERE category_id = 3;
 >
 > ```
 
@@ -562,8 +623,7 @@ CREATE TABLE wishlists (
 > [!NOTE]
 > ***Error(s) Identified***
 >
-> *(Describe what is wrong.)*
->
+>Two primary keys: wishlist_id PRIMARY KEY and the table-level PRIMARY KEY (customer_id, product_id)
 >
 >
 
@@ -571,11 +631,15 @@ CREATE TABLE wishlists (
 > [!NOTE]
 > ***Corrected SQL***
 >
-> ```sql
-> -- Write the corrected statement here
->
->
-> ```
+ ```sql
+CREATE TABLE wishlists (
+    wishlist_id SERIAL PRIMARY KEY,
+    customer_id INTEGER NOT NULL REFERENCES customers(customer_id),
+    product_id INTEGER NOT NULL REFERENCES products(product_id),
+    added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (customer_id, product_id)
+);
+```
 
 
 ---
