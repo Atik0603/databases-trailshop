@@ -1,17 +1,17 @@
 # Week 46 — Transactions and Concurrency: Exercises
-
+ 
 > [!IMPORTANT]
 > **_How to Complete These Exercises_**
 > Write your answers directly in the highlighted **Your Answer** / **Your SQL** fields below each task. Replace the placeholder text with your own work before submitting.
-
+ 
 ---
-
+ 
 ## 1. TrailShop Project Task
-
+ 
 ### Task 1.1: Write an Order Transaction
-
+ 
 Write a complete transaction that processes a new order in TrailShop:
-
+ 
 1. Insert a new order for an existing customer.
 2. Insert 2–3 order items.
 3. Decrease `stock_quantity` for each ordered product.
@@ -21,15 +21,104 @@ Write a complete transaction that processes a new order in TrailShop:
    > **_Your SQL_**
    >
    > ```sql
-   > -- Write your query here
+   > -- My stock column is called "stock" (not stock_quantity), and products have IDs 1-10.
+   > -- Successful order: customer 1 buys 2 x product 1, 1 x product 4, 3 x product 9.
+   > BEGIN;
    >
+   > -- 1. Create the order
+   > INSERT INTO orders (customer_id, status)
+   > VALUES (1, 'pending')
+   > RETURNING order_id;
    >
+   > -- 2. Insert 3 order items. The unit price is copied from the current product price.
+   > -- currval() returns the order_id that was just generated in this session.
+   > INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+   > SELECT currval('orders_order_id_seq'), p.product_id, v.qty, p.price
+   > FROM (VALUES (1, 2), (4, 1), (9, 3)) AS v(product_id, qty)
+   > JOIN products p ON p.product_id = v.product_id;
+   >
+   > -- 3. Savepoint before the stock update, so I can undo only the stock step
+   > SAVEPOINT before_stock_update;
+   >
+   > -- 4. Decrease stock for every item of this order.
+   > -- The CHECK (stock >= 0) constraint stops the statement with an error if any
+   > -- product would go negative.
+   > UPDATE products p
+   > SET stock = p.stock - oi.quantity
+   > FROM order_items oi
+   > WHERE oi.order_id = currval('orders_order_id_seq')
+   >   AND oi.product_id = p.product_id;
+   >
+   > -- 5. Explicit check: this must return 0 rows, otherwise the order is invalid
+   > SELECT product_id, name, stock
+   > FROM products
+   > WHERE product_id IN (1, 4, 9) AND stock < 0;
+   >
+   > -- If the check returned rows (or an error appeared above), I run:
+   > --     ROLLBACK TO SAVEPOINT before_stock_update;   -- undo only the stock step
+   > --     ROLLBACK;                                    -- then cancel the whole order
+   > -- Otherwise the order is valid:
+   > COMMIT;
    > ```
-
+   >
+   > ```sql
+   > -- Failing test: customer 1 tries to buy 500 x product 5, but there is not enough stock
+   > BEGIN;
+   >
+   > INSERT INTO orders (customer_id, status) VALUES (1, 'pending');
+   >
+   > INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+   > SELECT currval('orders_order_id_seq'), p.product_id, 500, p.price
+   > FROM products p
+   > WHERE p.product_id = 5;
+   >
+   > SAVEPOINT before_stock_update;
+   >
+   > UPDATE products SET stock = stock - 500 WHERE product_id = 5;
+   > -- ERROR: new row for relation "products" violates check constraint "products_stock_check"
+   > -- The transaction is now in an aborted state, so I undo everything:
+   >
+   > ROLLBACK TO SAVEPOINT before_stock_update;  -- brings the transaction back to a usable state
+   > ROLLBACK;                                   -- cancels the order and the order item too
+   >
+   > -- Verify: no new order exists and the stock of product 5 is unchanged
+   > SELECT * FROM orders ORDER BY order_id DESC LIMIT 3;
+   > SELECT product_id, name, stock FROM products WHERE product_id = 5;
+   > ```
+   >
+   > ```sql
+   > -- Alternative: the same stock check inside a DO block (a script that checks by itself).
+   > -- A DO block is one transaction, so RAISE EXCEPTION undoes everything in it.
+   > DO $$
+   > DECLARE
+   >     new_order_id INTEGER;
+   > BEGIN
+   >     INSERT INTO orders (customer_id, status) VALUES (1, 'pending')
+   >     RETURNING order_id INTO new_order_id;
+   >
+   >     INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+   >     SELECT new_order_id, p.product_id, 500, p.price
+   >     FROM products p WHERE p.product_id = 5;
+   >
+   >     IF (SELECT stock FROM products WHERE product_id = 5) < 500 THEN
+   >         RAISE EXCEPTION 'Insufficient stock for product 5';
+   >     END IF;
+   >
+   >     UPDATE products SET stock = stock - 500 WHERE product_id = 5;
+   > END $$;
+   > ```
+ 
 Test the transaction by:
-
+ 
 - Running it successfully with sufficient stock.
 - Running it where stock is insufficient — verify the ROLLBACK works.
+> [!NOTE]
+> **_Your Answer_**
+>
+> **Successful run:** After the COMMIT, `SELECT * FROM orders ORDER BY order_id DESC LIMIT 1;` shows the new pending order, `order_items` has the 3 new lines, and the stock of products 1, 4 and 9 is lower by 2, 1 and 3.
+>
+> **Insufficient stock:** The UPDATE fails with `violates check constraint "products_stock_check"`. After `ROLLBACK TO SAVEPOINT` and `ROLLBACK`, there is no new order, no new order item, and the stock of product 5 is unchanged, so the transaction was atomic: all or nothing.
+
 
 ### Task 1.2: Observe READ COMMITTED Behavior (Optional)
 
